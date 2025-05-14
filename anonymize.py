@@ -3,6 +3,7 @@ import torch
 import tops
 import tqdm
 import click
+import random
 import hashlib
 import numpy as np
 from dp2 import utils
@@ -36,6 +37,47 @@ class ImageIndexTracker:
     def fl_image(self, frame):
         self.idx += 1
         return self.fn(frame, self.idx - 1)
+    
+def anonymize_frame(frame, anonymizer):
+    synthesis_kwargs = {
+        "amp": True,
+        "multi_modal_truncation": False,
+        "truncation_value": 0,
+        "text_prompt": None,
+        "text_prompt_strength": 0.5,
+    }
+    visualize_detection = False
+    visualize = False
+    max_res = None
+
+    try:
+        print("Anonymizing frame")
+
+        # Convert frame to PIL image
+        im = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+        im = _apply_exif_orientation(im)
+        orig_im_mode = im.mode
+
+        im = im.convert("RGB")
+        im = resize(im, max_res)
+        
+        im = np.array(im)
+        im = apply_random_transformation(im)  # Apply random transformation
+        md5_ = hashlib.md5(im).hexdigest()
+        im = utils.im2torch(np.array(im), to_float=False, normalize=False)[0]
+        synthesis_kwargs["cache_id"] = md5_
+        if visualize_detection:
+            im_ = anonymizer.visualize_detection(tops.to_cuda(im), cache_id=md5_)
+        else:
+            im_ = anonymizer(im, **synthesis_kwargs)
+        im_ = utils.im2numpy(im_)
+        im_ = Image.fromarray(im_).convert(orig_im_mode)
+        
+        return cv2.cvtColor(np.array(im_), cv2.COLOR_RGB2BGR)
+    except Exception as e:
+        print(f"Failed to anonymize image: {e}")
+        return None
 
 
 def anonymize_video(
@@ -96,6 +138,13 @@ def resize(frame: Image.Image, max_res):
     new_shape = [int(x / f) for x in frame.size]
     return frame.resize(new_shape, resample=Image.BILINEAR)
 
+def apply_random_transformation(image):
+    rows, cols, _ = image.shape
+    # Apply random rotation
+    angle = np.random.uniform(-10, 10)
+    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+    transformed_image = cv2.warpAffine(image, M, (cols, rows))
+    return transformed_image
 
 def anonymize_image(
     image_path,
@@ -114,6 +163,7 @@ def anonymize_image(
         im = im.convert("RGB")
         im = resize(im, max_res)
     im = np.array(im)
+    im = apply_random_transformation(im)  # Apply random transformation
     md5_ = hashlib.md5(im).hexdigest()
     im = utils.im2torch(np.array(im), to_float=False, normalize=False)[0]
     synthesis_kwargs["cache_id"] = md5_
@@ -135,6 +185,45 @@ def anonymize_image(
         output_path.parent.mkdir(exist_ok=True, parents=True)
         im.save(output_path, optimize=False, quality=100)
         print(f"Saved to: {output_path}")
+
+# def anonymize_image(
+#     image_path,
+#     output_path: Path,
+#     visualize: bool,
+#     anonymizer,
+#     max_res: int,
+#     visualize_detection: bool,
+#     synthesis_kwargs,
+#     **kwargs,
+# ):
+#     with Image.open(image_path) as im:
+#         im = _apply_exif_orientation(im)
+#         orig_im_mode = im.mode
+
+#         im = im.convert("RGB")
+#         im = resize(im, max_res)
+#     im = np.array(im)
+#     md5_ = hashlib.md5(im).hexdigest()
+#     im = utils.im2torch(np.array(im), to_float=False, normalize=False)[0]
+#     synthesis_kwargs["cache_id"] = md5_
+#     if visualize_detection:
+#         im_ = anonymizer.visualize_detection(tops.to_cuda(im), cache_id=md5_)
+#     else:
+#         im_ = anonymizer(im, **synthesis_kwargs)
+#     im_ = utils.im2numpy(im_)
+#     if visualize:
+#         while True:
+#             cv2.imshow("frame", im_[:, :, ::-1])
+#             key = cv2.waitKey(0)
+#             if key == ord("q"):
+#                 break
+#             elif key == ord("u"):
+#                 im_ = utils.im2numpy(anonymizer(im, **synthesis_kwargs))
+#     im = Image.fromarray(im_).convert(orig_im_mode)
+#     if output_path is not None:
+#         output_path.parent.mkdir(exist_ok=True, parents=True)
+#         im.save(output_path, optimize=False, quality=100)
+#         print(f"Saved to: {output_path}")
 
 
 def anonymize_file(input_path: Path, output_path: Optional[Path], **kwargs):
