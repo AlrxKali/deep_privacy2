@@ -11,7 +11,7 @@ from PIL import Image
 from tops import logger
 from pathlib import Path
 from typing import Optional
-import moviepy.editor as mp
+# import moviepy.editor as mp
 from tops.config import instantiate
 from detectron2.data.detection_utils import _apply_exif_orientation
 from dp2.utils.bufferless_video_capture import BufferlessVideoCapture
@@ -80,53 +80,53 @@ def anonymize_frame(frame, anonymizer):
         return None
 
 
-def anonymize_video(
-    video_path,
-    output_path: Path,
-    anonymizer,
-    visualize: bool,
-    max_res: int,
-    start_time: int,
-    fps: int,
-    end_time: int,
-    visualize_detection: bool,
-    track: bool,
-    synthesis_kwargs,
-    **kwargs,
-):
-    video = mp.VideoFileClip(str(video_path))
-    if track:
-        anonymizer.initialize_tracker(video.fps)
+# def anonymize_video(
+#     video_path,
+#     output_path: Path,
+#     anonymizer,
+#     visualize: bool,
+#     max_res: int,
+#     start_time: int,
+#     fps: int,
+#     end_time: int,
+#     visualize_detection: bool,
+#     track: bool,
+#     synthesis_kwargs,
+#     **kwargs,
+# ):
+#     video = mp.VideoFileClip(str(video_path))
+#     if track:
+#         anonymizer.initialize_tracker(video.fps)
 
-    def process_frame(frame, idx):
-        frame = np.array(resize(Image.fromarray(frame), max_res))
-        cache_id = hashlib.md5(frame).hexdigest()
-        frame = utils.im2torch(frame, to_float=False, normalize=False)[0]
-        cache_id_ = cache_id + str(idx)
-        synthesis_kwargs["cache_id"] = cache_id_
-        if visualize_detection:
-            anonymized = anonymizer.visualize_detection(frame, cache_id=cache_id_)
-        else:
-            anonymized = anonymizer(frame, **synthesis_kwargs)
-        anonymized = utils.im2numpy(anonymized)
-        if visualize:
-            cv2.imshow("frame", anonymized[:, :, ::-1])
-            key = cv2.waitKey(1)
-            if key == ord("q"):
-                exit()
-        return anonymized
+#     def process_frame(frame, idx):
+#         frame = np.array(resize(Image.fromarray(frame), max_res))
+#         cache_id = hashlib.md5(frame).hexdigest()
+#         frame = utils.im2torch(frame, to_float=False, normalize=False)[0]
+#         cache_id_ = cache_id + str(idx)
+#         synthesis_kwargs["cache_id"] = cache_id_
+#         if visualize_detection:
+#             anonymized = anonymizer.visualize_detection(frame, cache_id=cache_id_)
+#         else:
+#             anonymized = anonymizer(frame, **synthesis_kwargs)
+#         anonymized = utils.im2numpy(anonymized)
+#         if visualize:
+#             cv2.imshow("frame", anonymized[:, :, ::-1])
+#             key = cv2.waitKey(1)
+#             if key == ord("q"):
+#                 exit()
+#         return anonymized
 
-    video: mp.VideoClip = video.subclip(start_time, end_time)
+#     video: mp.VideoClip = video.subclip(start_time, end_time)
 
-    if fps is not None:
-        video = video.set_fps(fps)
+#     if fps is not None:
+#         video = video.set_fps(fps)
 
-    video = video.fl_image(ImageIndexTracker(process_frame).fl_image)
-    if str(output_path).endswith(".avi"):
-        output_path = str(output_path).replace(".avi", ".mp4")
-    if not output_path.parent.exists():
-        output_path.parent.mkdir(parents=True)
-    video.write_videofile(str(output_path))
+#     video = video.fl_image(ImageIndexTracker(process_frame).fl_image)
+#     if str(output_path).endswith(".avi"):
+#         output_path = str(output_path).replace(".avi", ".mp4")
+#     if not output_path.parent.exists():
+#         output_path.parent.mkdir(parents=True)
+#     video.write_videofile(str(output_path))
 
 
 def resize(frame: Image.Image, max_res):
@@ -231,8 +231,8 @@ def anonymize_file(input_path: Path, output_path: Optional[Path], **kwargs):
         logger.warn(f"Overwriting previous file: {output_path}")
     if tops.is_image(input_path):
         anonymize_image(input_path, output_path, **kwargs)
-    elif tops.is_video(input_path):
-        anonymize_video(input_path, output_path, **kwargs)
+    # elif tops.is_video(input_path):
+    #     anonymize_video(input_path, output_path, **kwargs)
     else:
         logger.log(f"Filepath not a video or image file: {input_path}")
 
