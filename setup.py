@@ -1,9 +1,11 @@
+import torch
+import torchvision
 from setuptools import setup, find_packages
 
-# torch_ver = [int(x) for x in torch.__version__.split(".")[:2]]
-# assert torch_ver >= [1, 9], "Requires PyTorch >= 1.9"
-# torchvision_ver = [int(x) for x in torchvision.__version__.split(".")[:2]]
-# assert torchvision_ver >= [0, 11], "Requires torchvision >= 0.11"
+torch_ver = [int(x) for x in torch.__version__.split(".")[:2]]
+assert torch_ver >= [1, 9], "Requires PyTorch >= 1.9"
+torchvision_ver = [int(x) for x in torchvision.__version__.split(".")[:2]]
+assert torchvision_ver >= [0, 11], "Requires torchvision >= 0.11"
 
 setup(
     name="dp2",
@@ -17,7 +19,7 @@ setup(
         "tensorboard",
         "opencv-python",
         "detectron2-densepose@git+https://github.com/facebookresearch/detectron2@96c752ce821a3340e27edd51c28a00665dd32a30#subdirectory=projects/DensePose",
-        "torch_fidelity==0.3.0",
+        "torch_fidelity",
         "ninja",
         "moviepy",
         "pyspng",
@@ -31,10 +33,10 @@ setup(
         "einops_exts",
         "regex",
         "setuptools",
-        "resize_right==0.0.2",
-        "pillow>=8.3.1",
-        "scipy>=1.7.1",
-        "webdataset==0.2.26",
+        "resize_right",
+        "pillow",
+        "scipy",
+        "webdataset",
         "scikit-image",
         "imageio",
         "timm",
